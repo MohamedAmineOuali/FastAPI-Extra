@@ -49,9 +49,10 @@ class SessionClientAiohttp:
     def __call__(self, request: Request,
                  httpClient: aiohttp.ClientSession = Depends(SingletonAiohttp.get_aiohttp_client)):
         self.httpClient = httpClient
-        self.tenant_id = request.state.tenantId
-        if not self.tenant_id:
+        if not hasattr(request.state,"tenantId") or not request.state.tenantId:
             self.tenant_forward = False
+        else:
+            self.tenant_id = request.state.tenantId
         return self
 
     def request(self, *args, headers=None, **kwargs):
