@@ -1,5 +1,9 @@
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from fastapi import Request, FastAPI
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class TenantMiddleware(BaseHTTPMiddleware):
@@ -11,6 +15,8 @@ class TenantMiddleware(BaseHTTPMiddleware):
             host = request.headers.get("host", "").split(":")[0]  # type: str
             request.state.tenantId = host
 
+        logger.info(
+            f"------------ TenantMiddleware:request.state.tenantId={request.state.tenantId}--------------------------------")
         response = await call_next(request)
 
         return response

@@ -1,5 +1,4 @@
 import mongoengine
-from mongoengine import connect
 
 from contextvars import ContextVar
 
@@ -7,6 +6,12 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from fastapi import Request
 
 from fastapi_extra.utils import mongodb_settings
+import logging
+
+from fastapi_extra.utils.mongodb_service import MongodbService
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 _tenant_db_ctx_var: ContextVar = ContextVar("request_context_db", default=None)
 _tenant_collections_ctx_var: ContextVar = ContextVar("request_context_collections", default=None)
@@ -46,10 +51,6 @@ def patch():
 
         return collection
 
-
-
-        return collection
-
     mongoengine.Document._get_collection = new__get_collection
 
 
@@ -60,14 +61,18 @@ class TenantDBMiddleware(BaseHTTPMiddleware):
     async def dispatch(
             self, request: Request, call_next: RequestResponseEndpoint
     ):
+        logger.info(
+            f"------------ TenantDBMiddleware: db_alias={request.state.tenantId}--------------------------------")
         tenant_info = request.state.tenant_info = {
             "db_alias": request.state.tenantId,
             "db_Name": request.state.tenantId.replace(".", "_")
         }
-        connect(tenant_info['db_Name'], host=mongodb_settings.MONGODB_SERVER,
+
+        await MongodbService(db=tenant_info['db_Name'], host=mongodb_settings.MONGODB_SERVER,
                 username=mongodb_settings.MONGODB_USER,
                 password=mongodb_settings.MONGODB_PASSWORD, authentication_source='admin',
-                alias=tenant_info['db_alias'])
+                                alias=tenant_info['db_alias']) \
+            .connect()
         tenant_db = old_get_db(tenant_info['db_alias'])
         old_db_ctx_token = _tenant_db_ctx_var.set(tenant_db)
         old_collections_ctx_token = _tenant_collections_ctx_var.set({})
