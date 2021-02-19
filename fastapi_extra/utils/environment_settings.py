@@ -1,3 +1,5 @@
+import os
+
 from pydantic import BaseSettings
 
 
@@ -21,12 +23,15 @@ httpClientSettings = HttpClientSettings()
 
 
 class MongodbSettings(BaseSettings):
-    MONGODB_SERVER: str = None
-    MONGODB_USER: str = None
-    MONGODB_PASSWORD: str = None
+    MONGODB_SERVER: str
+    MONGODB_USER: str
+    MONGODB_PASSWORD: str
 
     class Config:
         case_sensitive = True
 
 
-mongodb_settings = MongodbSettings()
+if os.path.isdir('/secrets'):
+    mongodb_settings = MongodbSettings(_secrets_dir="/secrets")
+else:
+    mongodb_settings = MongodbSettings()
